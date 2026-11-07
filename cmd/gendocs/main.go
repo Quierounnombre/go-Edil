@@ -14,7 +14,7 @@ import (
 const (
 	README_PATH = "README.md"
 	PLACEHOLDER = "<!-- RULES -->\n"
-	REPO        = "github:quierounnombre/edil"
+	REPO        = "github:quierounnombre/go-Edil"
 )
 
 //go:embed readme.template.md

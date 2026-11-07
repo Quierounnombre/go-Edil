@@ -22,7 +22,7 @@ Generated from the analyzers in code, so this table cannot go stale.
 With Nix, from any machine:
 
 ```sh
-nix build github:quierounnombre/edil
+nix build github:quierounnombre/go-Edil
 ```
 
 Or from a clone of the repo, without Nix:
@@ -56,7 +56,7 @@ Fix the code, or narrow the rule if the rule is wrong. Do not disable a whole an
 In the flake of the project you are checking:
 
 ```nix
-inputs.edil.url = "github:quierounnombre/edil";
+inputs.edil.url = "github:quierounnombre/go-Edil";
 inputs.edil.inputs.nixpkgs.follows = "nixpkgs";
 
 # add to your tools list
