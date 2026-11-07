@@ -5,51 +5,43 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"html"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"edil/analyzers"
 )
 
 const (
-	DOCS_PATH   = "docs/index.html"
-	PLACEHOLDER = "<!-- RULES -->"
+	README_PATH = "README.md"
+	PLACEHOLDER = "<!-- RULES -->\n"
 	REPO        = "github:quierounnombre/edil"
 )
 
-//go:embed template.html
-
+//go:embed readme.template.md
 var TEMPLATE string
 
-func renderRows(indent string) string {
+func renderRows() string {
 	var builder strings.Builder
 
 	for _, analyzer := range analyzers.ANALYZERS {
-		fmt.Fprintf(&builder, "%s<tr><td><code>%s</code></td><td>%s</td></tr>\n",
-			indent, analyzer.Name, html.EscapeString(analyzer.Doc))
+		fmt.Fprintf(&builder, "| `%s` | %s |\n",
+			analyzer.Name, strings.ReplaceAll(analyzer.Doc, "|", "\\|"))
 	}
 	return builder.String()
 }
 
 func render() (string, error) {
-	var position = strings.Index(TEMPLATE, PLACEHOLDER)
 	var rendered string
-	var lineStart int
-	var indent string
 
-	if position < 0 {
-		return "", errors.New("placeholder not found in template.html")
+	if !strings.Contains(TEMPLATE, PLACEHOLDER) {
+		return "", errors.New("placeholder not found in readme.template.md")
 	}
-	lineStart = strings.LastIndex(TEMPLATE[:position], "\n") + 1
-	indent = TEMPLATE[lineStart:position]
-	rendered = TEMPLATE[:lineStart] + renderRows(indent) + TEMPLATE[position+len(PLACEHOLDER)+1:]
+	rendered = strings.Replace(TEMPLATE, PLACEHOLDER, renderRows(), 1)
 	return strings.ReplaceAll(rendered, "@REPO@", REPO), nil
 }
 
 func run() error {
-	var check = flag.Bool("check", false, "fail if docs are out of date")
+	var check = flag.Bool("check", false, "fail if README.md is out of date")
 	var current []byte
 	var updated string
 	var err error
@@ -59,21 +51,17 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if *check {
-		current, err = os.ReadFile(DOCS_PATH)
-		if err != nil {
-			return err
-		}
-		if string(current) != updated {
-			return errors.New(DOCS_PATH + " is out of date, run: go run ./cmd/gendocs")
-		}
-		return nil
+	if !*check {
+		return os.WriteFile(README_PATH, []byte(updated), 0o644)
 	}
-	err = os.MkdirAll(filepath.Dir(DOCS_PATH), 0o755)
+	current, err = os.ReadFile(README_PATH)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(DOCS_PATH, []byte(updated), 0o644)
+	if string(current) != updated {
+		return errors.New(README_PATH + " is out of date, run: go run ./cmd/gendocs")
+	}
+	return nil
 }
 
 func main() {
