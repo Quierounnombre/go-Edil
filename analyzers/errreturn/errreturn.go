@@ -58,7 +58,12 @@ func returnsError(pass *analysis.Pass, fn *ast.FuncDecl) bool {
 func checkBlank(pass *analysis.Pass, body *ast.BlockStmt) {
 	ast.Inspect(body, func(node ast.Node) bool {
 		var assign *ast.AssignStmt
+		var isDefer bool
 		var ok bool
+		_, isDefer = node.(*ast.DeferStmt)
+		if isDefer {
+			return false
+		}
 		assign, ok = node.(*ast.AssignStmt)
 		if ok {
 			reportBlank(pass, assign)

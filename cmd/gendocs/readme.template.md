@@ -72,7 +72,7 @@ go vet -vettool=$(command -v edil) ./...
 
 1. Create `analyzers/NAME/NAME.go` exporting `var Analyzer *analysis.Analyzer`.
 2. Add it to the `ANALYZERS` list in `analyzers/all.go`.
-3. Refresh this file `with go run ./cmd/gendocs/main.go`, then commit:
+3. Refresh this file `with go run ./cmd/gendocs`, then commit:
 
 ```sh
 go run ./cmd/gendocs

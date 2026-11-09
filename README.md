@@ -11,7 +11,6 @@ Generated from the analyzers in code, so this table cannot go stale.
 | Analyzer | Enforces |
 |---|---|
 | `constcase` | constants must be SCREAMING_SNAKE_CASE |
-| `predeclare` | variables must be declared with var, not := mid-function |
 | `nopanic` | forbid panic, log.Fatal*, log.Panic* and os.Exit outside main; return errors instead |
 | `layout` | types must live in type.go, constants in defines.go |
 | `errreturn` | errors must be returned, not assigned to _ or checked and swallowed |
@@ -77,7 +76,7 @@ go vet -vettool=$(command -v edil) ./...
 
 1. Create `analyzers/NAME/NAME.go` exporting `var Analyzer *analysis.Analyzer`.
 2. Add it to the `ANALYZERS` list in `analyzers/all.go`.
-3. Refresh this file `with go run ./cmd/gendocs/main.go`, then commit:
+3. Refresh this file `with go run ./cmd/gendocs`, then commit:
 
 ```sh
 go run ./cmd/gendocs

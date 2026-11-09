@@ -8,11 +8,9 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-const DOC = "forbid panic, log.Fatal*, log.Panic* and os.Exit outside main; return errors instead"
-
 var Analyzer *analysis.Analyzer = &analysis.Analyzer{
 	Name: "nopanic",
-	Doc:  DOC,
+	Doc:  "forbid panic, log.Fatal*, log.Panic* and os.Exit outside main; return errors instead",
 	Run:  run,
 }
 

@@ -8,7 +8,7 @@
 	in {
 		packages.${system}.default = pkgs.buildGoModule {
 			pname = "edil";
-			version = "0.1.0";
+			version = "0.2.0";
 			src = ./.;
 			subPackages = [ "cmd/edil" "cmd/gendocs" ];
 			vendorHash = "sha256-hid0eSPm/yfUFBnPnQn2VpHGt/vIEB+zFZEaHuCBJZU=";
