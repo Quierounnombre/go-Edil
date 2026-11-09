@@ -15,6 +15,11 @@ Generated from the analyzers in code, so this table cannot go stale.
 | `layout` | types must live in type.go, constants in defines.go |
 | `errreturn` | errors must be returned, not assigned to _ or checked and swallowed |
 | `tabindent` | indentation must use tabs, not spaces |
+| `maxdepth` | control flow must not nest deeper than MAX_DEPTH levels |
+| `nakedreturn` | functions with named results must not use a bare return |
+| `noelse` | no else after a block that returns, breaks or continues |
+| `noifinit` | if and switch must not have an init statement; declare it on its own line |
+| `pkgsize` | a package must stay under MAX_TYPES types and MAX_LINES lines; split it |
 
 ---
 

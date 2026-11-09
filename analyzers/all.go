@@ -8,6 +8,11 @@ import (
 	"edil/analyzers/layout"
 	"edil/analyzers/nopanic"
 	"edil/analyzers/tabindent"
+	"edil/analyzers/maxdepth"
+	"edil/analyzers/nakereturn"
+	"edil/analyzers/noelse"
+	"edil/analyzers/noifinit"
+	"edil/analyzers/pkgsize"
 )
 
 var ANALYZERS = []*analysis.Analyzer{
@@ -16,4 +21,9 @@ var ANALYZERS = []*analysis.Analyzer{
 	layout.Analyzer,
 	errreturn.Analyzer,
 	tabindent.Analyzer,
+	maxdepth.Analyzer,
+	nakedreturn.Analyzer,
+	noelse.Analyzer,
+	noifinit.Analyzer,
+	pkgsize.Analyzer,
 }
