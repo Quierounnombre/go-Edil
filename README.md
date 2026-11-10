@@ -10,16 +10,7 @@ Generated from the analyzers in code, so this table cannot go stale.
 
 | Analyzer | Enforces |
 |---|---|
-| `constcase` | constants must be SCREAMING_SNAKE_CASE |
-| `nopanic` | forbid panic, log.Fatal*, log.Panic* and os.Exit outside main; return errors instead |
-| `layout` | types must live in type.go, constants in defines.go |
-| `errreturn` | errors must be returned, not assigned to _ or checked and swallowed |
-| `tabindent` | indentation must use tabs, not spaces |
-| `maxdepth` | control flow must not nest deeper than MAX_DEPTH levels |
-| `nakedreturn` | functions with named results must not use a bare return |
-| `noelse` | no else after a block that returns, breaks or continues |
-| `noifinit` | if and switch must not have an init statement; declare it on its own line |
-| `pkgsize` | a package must stay under MAX_TYPES types and MAX_LINES lines; split it |
+<!-- RULES -->
 
 ---
 
@@ -30,7 +21,7 @@ Generated from the analyzers in code, so this table cannot go stale.
 With Nix, from any machine:
 
 ```sh
-nix build github:quierounnombre/go-Edil
+nix build @REPO@
 ```
 
 Or from a clone of the repo, without Nix:
@@ -64,7 +55,7 @@ Fix the code, or narrow the rule if the rule is wrong. Do not disable a whole an
 In the flake of the project you are checking:
 
 ```nix
-inputs.edil.url = "github:quierounnombre/go-Edil";
+inputs.edil.url = "@REPO@";
 inputs.edil.inputs.nixpkgs.follows = "nixpkgs";
 
 # add to your tools list
