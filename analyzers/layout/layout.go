@@ -4,53 +4,48 @@ import (
 	"go/ast"
 	"go/token"
 	"path/filepath"
-	"strings"
+
+	"edil/analyzers/kit"
 
 	"golang.org/x/tools/go/analysis"
 )
 
-var Analyzer *analysis.Analyzer = &analysis.Analyzer{
+var Analyzer = &analysis.Analyzer{
 	Name: "layout",
 	Doc:  "types must live in type.go, constants in defines.go",
 	Run:  run,
 }
 
 func run(pass *analysis.Pass) (any, error) {
-	var file *ast.File
-	var decl ast.Decl
-	var gen *ast.GenDecl
-	var ok bool
-	var name string
-	for _, file = range pass.Files {
-		name = pass.Fset.File(file.Pos()).Name()
-		if ast.IsGenerated(file) || strings.HasSuffix(name, "_test.go") {
+	for _, file := range pass.Files {
+		if kit.Skip(pass, file) {
 			continue
 		}
-		name = filepath.Base(name)
-		for _, decl = range file.Decls {
-			gen, ok = decl.(*ast.GenDecl)
-			if !ok {
-				continue
-			}
-			if gen.Tok == token.TYPE && name != "type.go" {
-				reportTypes(pass, gen)
-			}
-			if gen.Tok == token.CONST && name != "defines.go" {
-				pass.Reportf(gen.Pos(), "constants must live in defines.go")
+		name := filepath.Base(pass.Fset.File(file.Pos()).Name())
+		for _, decl := range file.Decls {
+			gen, ok := decl.(*ast.GenDecl)
+			if ok {
+				check(pass, gen, name)
 			}
 		}
 	}
 	return nil, nil
 }
 
+func check(pass *analysis.Pass, gen *ast.GenDecl, name string) {
+	if gen.Tok == token.TYPE && name != TYPE_FILE {
+		reportTypes(pass, gen)
+	}
+	if gen.Tok == token.CONST && name != DEFINES_FILE {
+		kit.Reportf(pass, gen.Pos(), "constants must live in defines.go")
+	}
+}
+
 func reportTypes(pass *analysis.Pass, gen *ast.GenDecl) {
-	var spec ast.Spec
-	var typeSpec *ast.TypeSpec
-	var ok bool
-	for _, spec = range gen.Specs {
-		typeSpec, ok = spec.(*ast.TypeSpec)
+	for _, spec := range gen.Specs {
+		typeSpec, ok := spec.(*ast.TypeSpec)
 		if ok {
-			pass.Reportf(typeSpec.Pos(), "type %q must live in type.go", typeSpec.Name.Name)
+			kit.Reportf(pass, typeSpec.Pos(), "type %q must live in type.go", typeSpec.Name.Name)
 		}
 	}
 }

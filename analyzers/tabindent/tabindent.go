@@ -5,23 +5,23 @@ import (
 	"go/token"
 	"strings"
 
+	"edil/analyzers/kit"
+
 	"golang.org/x/tools/go/analysis"
 )
 
-var Analyzer *analysis.Analyzer = &analysis.Analyzer{
+var Analyzer = &analysis.Analyzer{
 	Name: "tabindent",
 	Doc:  "indentation must use tabs, not spaces",
 	Run:  run,
 }
 
 func run(pass *analysis.Pass) (any, error) {
-	var file *ast.File
-	var err error
-	for _, file = range pass.Files {
+	for _, file := range pass.Files {
 		if ast.IsGenerated(file) {
 			continue
 		}
-		err = checkFile(pass, file)
+		err := checkFile(pass, file)
 		if err != nil {
 			return nil, err
 		}
@@ -30,21 +30,14 @@ func run(pass *analysis.Pass) (any, error) {
 }
 
 func checkFile(pass *analysis.Pass, file *ast.File) error {
-	var tokFile *token.File
-	var src []byte
-	var err error
-	var skip map[int]bool
-	var index int
-	var line string
-	var count int
-	var first int
-	tokFile = pass.Fset.File(file.Pos())
-	src, err = pass.ReadFile(tokFile.Name())
+	tokFile := pass.Fset.File(file.Pos())
+	src, err := pass.ReadFile(tokFile.Name())
 	if err != nil {
 		return err
 	}
-	skip = verbatimLines(pass, file)
-	for index, line = range strings.Split(string(src), "\n") {
+	skip := verbatimLines(pass, file)
+	count, first := 0, 0
+	for index, line := range strings.Split(string(src), NEWLINE) {
 		if skip[index+1] || !hasSpaceIndent(line) {
 			continue
 		}
@@ -54,38 +47,32 @@ func checkFile(pass *analysis.Pass, file *ast.File) error {
 		count++
 	}
 	if count > 0 {
-		pass.Reportf(tokFile.LineStart(first), "indent with tabs, not spaces (%d lines, first here)", count)
+		kit.Reportf(pass, tokFile.LineStart(first), "indent with tabs, not spaces (%d lines, first here)", count)
 	}
 	return nil
 }
 
 func hasSpaceIndent(line string) bool {
-	var trimmed string
-	var indent string
-	trimmed = strings.TrimLeft(line, "\t ")
+	trimmed := strings.TrimLeft(line, INDENT_CHARS)
 	if trimmed == "" {
 		return false
 	}
-	indent = line[:len(line)-len(trimmed)]
-	return strings.Contains(indent, " ")
+	indent := line[:len(line)-len(trimmed)]
+	return strings.Contains(indent, SPACE)
 }
 
 func verbatimLines(pass *analysis.Pass, file *ast.File) map[int]bool {
-	var skip map[int]bool = map[int]bool{}
-	var group *ast.CommentGroup
-	var comment *ast.Comment
+	skip := map[int]bool{}
 	ast.Inspect(file, func(node ast.Node) bool {
-		var lit *ast.BasicLit
-		var ok bool
-		lit, ok = node.(*ast.BasicLit)
+		lit, ok := node.(*ast.BasicLit)
 		if ok && lit.Kind == token.STRING && lit.Value[0] == '`' {
 			markLines(pass, skip, lit.Pos(), lit.End())
 		}
 		return true
 	})
-	for _, group = range file.Comments {
-		for _, comment = range group.List {
-			if strings.HasPrefix(comment.Text, "/*") {
+	for _, group := range file.Comments {
+		for _, comment := range group.List {
+			if strings.HasPrefix(comment.Text, BLOCK_OPEN) {
 				markLines(pass, skip, comment.Pos(), comment.End())
 			}
 		}
@@ -94,10 +81,8 @@ func verbatimLines(pass *analysis.Pass, file *ast.File) map[int]bool {
 }
 
 func markLines(pass *analysis.Pass, skip map[int]bool, start token.Pos, end token.Pos) {
-	var line int
-	var last int
-	last = pass.Fset.Position(end).Line
-	for line = pass.Fset.Position(start).Line + 1; line <= last; line++ {
+	last := pass.Fset.Position(end).Line
+	for line := pass.Fset.Position(start).Line + 1; line <= last; line++ {
 		skip[line] = true
 	}
 }

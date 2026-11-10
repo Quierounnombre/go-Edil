@@ -3,47 +3,47 @@ package pkgsize
 import (
 	"go/ast"
 	"go/token"
-	"strings"
+
+	"edil/analyzers/kit"
 
 	"golang.org/x/tools/go/analysis"
 )
 
-var Analyzer *analysis.Analyzer = &analysis.Analyzer{
+var Analyzer = &analysis.Analyzer{
 	Name: "pkgsize",
-	Doc:  "a package must stay under MAX_TYPES types and MAX_LINES lines; split it",
+	Doc:  "a package must stay under MAX_TYPES (10) types and MAX_LINES (1500) lines; split it",
 	Run:  run,
 }
 
 func run(pass *analysis.Pass) (any, error) {
-	var file *ast.File
-	var decl ast.Decl
-	var gen *ast.GenDecl
-	var tokFile *token.File
-	var ok bool
-	var first token.Pos
-	var typeCount int
-	var lineCount int
-	for _, file = range pass.Files {
-		tokFile = pass.Fset.File(file.Pos())
-		if ast.IsGenerated(file) || strings.HasSuffix(tokFile.Name(), "_test.go") {
+	first := token.NoPos
+	typeCount, lineCount := 0, 0
+	for _, file := range pass.Files {
+		if kit.Skip(pass, file) {
 			continue
 		}
 		if first == token.NoPos {
 			first = file.Name.Pos()
 		}
-		lineCount += tokFile.LineCount()
-		for _, decl = range file.Decls {
-			gen, ok = decl.(*ast.GenDecl)
-			if ok && gen.Tok == token.TYPE {
-				typeCount += len(gen.Specs)
-			}
-		}
+		lineCount += pass.Fset.File(file.Pos()).LineCount()
+		typeCount += countTypes(file)
 	}
 	if typeCount > MAX_TYPES {
-		pass.Reportf(first, "package declares %d types (max %d); split the package", typeCount, MAX_TYPES)
+		kit.Reportf(pass, first, "package declares %d types (max %d); split the package", typeCount, MAX_TYPES)
 	}
 	if lineCount > MAX_LINES {
-		pass.Reportf(first, "package has %d lines (max %d); split the package", lineCount, MAX_LINES)
+		kit.Reportf(pass, first, "package has %d lines (max %d); split the package", lineCount, MAX_LINES)
 	}
 	return nil, nil
+}
+
+func countTypes(file *ast.File) int {
+	total := 0
+	for _, decl := range file.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if ok && gen.Tok == token.TYPE {
+			total += len(gen.Specs)
+		}
+	}
+	return total
 }
