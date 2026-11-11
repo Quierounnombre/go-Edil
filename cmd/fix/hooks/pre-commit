@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Install once per clone:  git config core.hooksPath cmd/fix/hooks
+# Runs gofmt, Edil and (when present) the generated docs check.
+set -euo pipefail
+
+if [ -n "${EDIL:-}" ]; then
+	bin=$EDIL
+elif command -v edil >/dev/null; then
+	bin=$(command -v edil)
+elif [ -d cmd/edil ]; then
+	bin=$(mktemp)
+	trap 'rm -f "$bin"' EXIT
+	go build -o "$bin" ./cmd/edil
+else
+	echo "pre-commit: set EDIL or put edil on PATH" >&2
+	exit 1
+fi
+
+unformatted=$(git diff --cached --name-only --diff-filter=ACM -- '*.go' | grep -v '/testdata/' | xargs -r gofmt -l)
+if [ -n "$unformatted" ]; then
+	echo "gofmt needed:" >&2
+	echo "$unformatted" >&2
+	exit 1
+fi
+
+go vet -vettool="$bin" ./...
+
+if [ -d cmd/gendocs ]; then
+	go run ./cmd/gendocs -check
+fi

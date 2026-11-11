@@ -125,6 +125,13 @@ go vet -vettool=$(readlink -f result/bin/edil) ./...
 
 * * *
 
+## Tools
+
+* `edil -explain` lists every rule; `edil -explain RULE` prints its description and a bad/good example.
+* `edil -fix ./...` applies the mechanical fixes (errwrap, varinit, noelse, constcase, tabindent). Run gofmt afterwards.
+* `git config core.hooksPath cmd/fix/hooks` runs gofmt, Edil and the docs check before every commit.
+* `cmd/fix/fixloop.sh` runs an agent until Edil is clean and logs each round to `~/.local/state/edil/metrics.tsv`; `cmd/fix/metrics.sh` summarizes it. Round 1 counts are the rules the agent breaks first: put those in its prompt.
+
 ## Troubleshooting
 
 **Nix says the build hash is wrong**

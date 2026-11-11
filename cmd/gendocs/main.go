@@ -13,7 +13,7 @@ import (
 	"edil/analyzers"
 )
 
-//go:embed readme.template.md conventions.template.md examples
+//go:embed readme.template.md conventions.template.md
 var FILES embed.FS
 
 func buildPage() (Page, error) {
@@ -21,11 +21,11 @@ func buildPage() (Page, error) {
 	for _, analyzer := range analyzers.ANALYZERS {
 		summary, _, _ := strings.Cut(analyzer.Doc, NEWLINE)
 		doc := strings.ReplaceAll(summary, PIPE, PIPE_ESCAPED)
-		example, err := FILES.ReadFile(EXAMPLES_DIR + analyzer.Name + EXAMPLE_EXT)
-		if err != nil {
-			return Page{}, fmt.Errorf("rule %s has no example: %w", analyzer.Name, err)
+		example, found := analyzers.Example(analyzer.Name)
+		if !found {
+			return Page{}, fmt.Errorf("rule %s has no example in analyzers/examples", analyzer.Name)
 		}
-		rules = append(rules, Rule{Name: analyzer.Name, Doc: doc, Example: strings.TrimSpace(string(example))})
+		rules = append(rules, Rule{Name: analyzer.Name, Doc: doc, Example: example})
 	}
 	return Page{Repo: REPO, Rules: rules}, nil
 }

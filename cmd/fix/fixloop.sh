@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs an agent until Edil reports nothing.
 #
-#   AGENT='claude -p' EDIL=/path/to/edil scripts/fixloop.sh [max_rounds]
+#   AGENT='claude -p' EDIL=/path/to/edil cmd/fix/fixloop.sh [max_rounds]
 #
 # AGENT is a shell command that reads the prompt on stdin and edits files in
 # the current directory. Each round may only touch files that have findings,
@@ -12,6 +12,10 @@ EDIL=${EDIL:?set EDIL to the edil binary}
 AGENT=${AGENT:?set AGENT to a command that reads the prompt on stdin}
 MAX_ROUNDS=${1:-5}
 FAILURE=1
+# One line per rule per round: time, repo, round, rule, findings, outcome.
+# Lives outside the repo so it never dirties the working tree.
+METRICS=${METRICS:-${XDG_STATE_HOME:-$HOME/.local/state}/edil/metrics.tsv}
+mkdir -p "$(dirname "$METRICS")"
 
 command -v jq >/dev/null || { echo "jq is required" >&2; exit "$FAILURE"; }
 if [ -n "$(git status --porcelain)" ]; then
@@ -43,6 +47,12 @@ rollback() {
 	git clean -fdq
 }
 
+record() {
+	cut -f2 <<<"$current" | sort | uniq -c | while read -r count rule; do
+		printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -u +%FT%TZ)" "$(basename "$PWD")" "$round" "$rule" "$count" "$1"
+	done >>"$METRICS"
+}
+
 prompt_for() {
 	cat <<PROMPT
 Fix every finding below. Rules are in CONVENTIONS.md.
@@ -68,6 +78,7 @@ for round in $(seq 1 "$MAX_ROUNDS"); do
 	if [ -z "$(changed_files)" ]; then
 		feedback="Your previous attempt changed nothing; the findings are still there."
 		echo "no changes"
+		record no_change
 		continue
 	fi
 	outside=$(comm -23 <(changed_files) <(echo "$allowed") || true)
@@ -75,6 +86,7 @@ for round in $(seq 1 "$MAX_ROUNDS"); do
 		feedback="Your previous attempt was rolled back: it touched files with no findings: $(tr '\n' ' ' <<<"$outside")"
 		echo "$feedback"
 		rollback
+		record rolled_back_scope
 		continue
 	fi
 	if ! build_log=$(go build ./... 2>&1 && go test ./... 2>&1); then
@@ -82,10 +94,12 @@ for round in $(seq 1 "$MAX_ROUNDS"); do
 $build_log"
 		echo "build/test failed, rolled back"
 		rollback
+		record rolled_back_build
 		continue
 	fi
 	git add -A
 	git commit -q -m "edil fixloop round $round"
+	record committed
 done
 
 if [ -z "$(findings)" ]; then
