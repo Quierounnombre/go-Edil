@@ -1,6 +1,7 @@
 package varinit
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -47,14 +48,14 @@ func checkStmts(pass *analysis.Pass, stmts []ast.Stmt) {
 			continue
 		}
 		for _, spec := range gen.Specs {
-			checkSpec(pass, spec.(*ast.ValueSpec), stmts[index+1:])
+			checkSpec(pass, decl, spec.(*ast.ValueSpec), stmts[index+1:])
 		}
 	}
 }
 
-func checkSpec(pass *analysis.Pass, spec *ast.ValueSpec, rest []ast.Stmt) {
+func checkSpec(pass *analysis.Pass, decl *ast.DeclStmt, spec *ast.ValueSpec, rest []ast.Stmt) {
 	if len(spec.Values) > 0 && spec.Type == nil {
-		kit.Reportf(pass, spec.Pos(), "use := instead of var with an initial value")
+		reportInitialValue(pass, decl, spec)
 		return
 	}
 	if len(spec.Values) > 0 {
@@ -62,21 +63,31 @@ func checkSpec(pass *analysis.Pass, spec *ast.ValueSpec, rest []ast.Stmt) {
 	}
 	for _, name := range spec.Names {
 		obj := pass.TypesInfo.Defs[name]
-		if obj != nil && assignedFirst(pass, rest, obj) {
-			kit.Reportf(pass, name.Pos(), "%q is assigned right after its declaration; use := at that assignment", name.Name)
+		assign := firstAssign(pass, rest, obj)
+		if obj == nil || assign == nil {
+			continue
 		}
+		message := fmt.Sprintf("%q is assigned right after its declaration; use := at that assignment", name.Name)
+		if canMerge(pass, decl, spec, assign, obj) {
+			kit.ReportFix(pass, name.Pos(), message, "declare at the assignment", mergeEdits(decl, rest, assign))
+			continue
+		}
+		kit.Report(pass, name.Pos(), message)
 	}
 }
 
-func assignedFirst(pass *analysis.Pass, rest []ast.Stmt, obj types.Object) bool {
+func firstAssign(pass *analysis.Pass, rest []ast.Stmt, obj types.Object) *ast.AssignStmt {
 	for _, stmt := range rest {
 		if !mentions(pass, stmt, obj) {
 			continue
 		}
 		assign, ok := stmt.(*ast.AssignStmt)
-		return ok && assign.Tok == token.ASSIGN && onlyTarget(pass, assign, obj)
+		if ok && assign.Tok == token.ASSIGN && onlyTarget(pass, assign, obj) {
+			return assign
+		}
+		return nil
 	}
-	return false
+	return nil
 }
 
 func onlyTarget(pass *analysis.Pass, assign *ast.AssignStmt, obj types.Object) bool {
@@ -101,4 +112,37 @@ func mentions(pass *analysis.Pass, root ast.Node, obj types.Object) bool {
 		return !found
 	})
 	return found
+}
+
+func reportInitialValue(pass *analysis.Pass, decl *ast.DeclStmt, spec *ast.ValueSpec) {
+	message := "use := instead of var with an initial value"
+	gen := decl.Decl.(*ast.GenDecl)
+	if gen.Lparen.IsValid() || len(spec.Names) != len(spec.Values) {
+		kit.Report(pass, spec.Pos(), message)
+		return
+	}
+	last := spec.Names[len(spec.Names)-1]
+	edits := []analysis.TextEdit{
+		kit.Edit(gen.Pos(), spec.Names[0].Pos(), ""),
+		kit.Edit(last.End(), spec.Values[0].Pos(), " := "),
+	}
+	kit.ReportFix(pass, spec.Pos(), message, "use :=", edits)
+}
+
+// canMerge is true when "var x T; ...; x = e" can become "x := e" without
+// changing the type of x or its scope.
+func canMerge(pass *analysis.Pass, decl *ast.DeclStmt, spec *ast.ValueSpec, assign *ast.AssignStmt, obj types.Object) bool {
+	gen := decl.Decl.(*ast.GenDecl)
+	if gen.Lparen.IsValid() || len(spec.Names) != SINGLE || len(assign.Lhs) != SINGLE || len(assign.Rhs) != SINGLE {
+		return false
+	}
+	value := pass.TypesInfo.Types[assign.Rhs[0]]
+	return value.Value == nil && !value.IsNil() && types.Identical(obj.Type(), value.Type)
+}
+
+func mergeEdits(decl *ast.DeclStmt, rest []ast.Stmt, assign *ast.AssignStmt) []analysis.TextEdit {
+	return []analysis.TextEdit{
+		kit.Edit(decl.Pos(), rest[0].Pos(), ""),
+		kit.Edit(assign.TokPos, assign.TokPos+token.Pos(len(token.ASSIGN.String())), token.DEFINE.String()),
+	}
 }

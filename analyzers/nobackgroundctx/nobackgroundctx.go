@@ -21,16 +21,12 @@ func run(pass *analysis.Pass) (any, error) {
 		}
 		for _, decl := range file.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
-			if ok && fn.Body != nil && !isMain(pass, fn) {
+			if ok && fn.Body != nil && !kit.IsMain(pass, fn) {
 				checkBody(pass, fn.Body)
 			}
 		}
 	}
 	return nil, nil
-}
-
-func isMain(pass *analysis.Pass, fn *ast.FuncDecl) bool {
-	return pass.Pkg.Name() == MAIN_PKG && fn.Recv == nil && fn.Name.Name == MAIN_FUNC
 }
 
 func checkBody(pass *analysis.Pass, body *ast.BlockStmt) {

@@ -52,13 +52,7 @@ store.go:12:7: constant "maxRetries" must be SCREAMING_SNAKE_CASE
 
 Fix the code, or narrow the rule if the rule is wrong. Do not disable a whole analyzer.
 
-When one line is a deliberate exception, say so on that line or the line above, with a reason:
-
-```
-//edil:ignore mathrand jitter only, not security
-```
-
-The rule name and the reason are both required. Without a reason the finding stays.
+There is no way to suppress a finding. Fix the code; if a rule is wrong for a real case, change the rule in Edil. Only `_test.go` files are exempt. The full rule list with examples is in [CONVENTIONS.md](CONVENTIONS.md).
 
 ### 4. Add it to the project gate
 
@@ -81,7 +75,7 @@ go vet -vettool=$(command -v edil) ./...
 ### 5. Add a rule to Edil
 
 1. Create `analyzers/NAME/NAME.go` exporting `var Analyzer *analysis.Analyzer`. Constants go in `analyzers/NAME/defines.go`.
-2. Start the file loop with `kit.Skip(pass, file)` and report with `kit.Reportf(pass, pos, ...)`, so tests, generated files and `//edil:ignore` behave the same in every rule.
+2. Start the file loop with `kit.Skip(pass, file)` and report with `kit.Reportf(pass, pos, ...)`, so the test-file exemption behaves the same in every rule.
 3. Add it to the `ANALYZERS` list in `analyzers/all.go`.
 4. Refresh this file, then commit:
 
@@ -124,7 +118,7 @@ go mod vendor
 
 **A rule flags too much**
 
-Narrow it in its source, rebuild, and re-run on a real project. For a single justified line, use `//edil:ignore` with a reason.
+Narrow it in its source, rebuild, and re-run on a real project. Suppression comments do not exist; the rule is the thing to fix.
 
 * * *
 

@@ -10,7 +10,7 @@ import (
 
 var Analyzer = &analysis.Analyzer{
 	Name: "mathrand",
-	Doc:  "math/rand is predictable; use crypto/rand, or //edil:ignore mathrand <reason> for non-security use",
+	Doc:  "math/rand is predictable; use crypto/rand",
 	Run:  run,
 }
 

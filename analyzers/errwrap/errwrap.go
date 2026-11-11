@@ -1,7 +1,9 @@
 package errwrap
 
 import (
+	"fmt"
 	"go/ast"
+	"go/token"
 	"go/types"
 	"strings"
 
@@ -41,14 +43,41 @@ func check(pass *analysis.Pass, call *ast.CallExpr) {
 		return
 	}
 	args := call.Args[1:]
-	for index, verb := range verbs(format) {
+	for index, found := range verbs(format) {
 		if index >= len(args) {
 			return
 		}
-		if (verb == VERB_V || verb == VERB_S) && isErrorValue(pass, args[index]) {
-			kit.Reportf(pass, args[index].Pos(), "error formatted with %%%c; use %%w to keep the error chain", verb)
+		if (found.verb == VERB_V || found.verb == VERB_S) && isErrorValue(pass, args[index]) {
+			report(pass, call, found, args[index])
 		}
 	}
+}
+
+func report(pass *analysis.Pass, call *ast.CallExpr, found verbAt, arg ast.Expr) {
+	message := fmt.Sprintf("error formatted with %%%c; use %%w to keep the error chain", found.verb)
+	edits := fixEdits(pass, call, found, arg)
+	if edits == nil {
+		kit.Report(pass, arg.Pos(), message)
+		return
+	}
+	kit.ReportFix(pass, arg.Pos(), message, "use %w", edits)
+}
+
+// fixEdits is nil unless the format is a plain interpreted literal, where
+// source offsets equal string offsets.
+func fixEdits(pass *analysis.Pass, call *ast.CallExpr, found verbAt, arg ast.Expr) []analysis.TextEdit {
+	lit, ok := call.Args[0].(*ast.BasicLit)
+	if !ok || lit.Kind != token.STRING || strings.ContainsRune(lit.Value, ESCAPE) || lit.Value[0] != QUOTE {
+		return nil
+	}
+	at := lit.Pos() + token.Pos(len(QUOTE_STRING)+found.offset)
+	edits := []analysis.TextEdit{kit.Edit(at, at+token.Pos(len(string(found.verb))), string(VERB_W))}
+	method, isCall := arg.(*ast.CallExpr)
+	if !isCall || !isErrorMethod(pass, method, types.Universe.Lookup(ERROR_NAME).Type()) {
+		return edits
+	}
+	sel := method.Fun.(*ast.SelectorExpr)
+	return append(edits, kit.Edit(sel.X.End(), method.End(), ""))
 }
 
 func isErrorValue(pass *analysis.Pass, expr ast.Expr) bool {
@@ -70,29 +99,28 @@ func isErrorMethod(pass *analysis.Pass, call *ast.CallExpr, errType types.Type) 
 	return recv != nil && types.AssignableTo(recv, errType)
 }
 
-func verbs(format string) []rune {
-	var found []rune
-	runes := []rune(format)
-	for index := 0; index < len(runes); index++ {
-		if runes[index] != PERCENT {
+func verbs(format string) []verbAt {
+	var found []verbAt
+	for index := 0; index < len(format); index++ {
+		if format[index] != PERCENT {
 			continue
 		}
-		verb, next := readVerb(runes, index+1)
-		index = next
-		if verb != PERCENT && verb != 0 {
-			found = append(found, verb)
+		verb, at := readVerb(format, index+1)
+		index = at
+		if verb != PERCENT && verb != NO_VERB {
+			found = append(found, verbAt{verb: verb, offset: at})
 		}
 	}
 	return found
 }
 
-func readVerb(runes []rune, start int) (rune, int) {
+func readVerb(format string, start int) (rune, int) {
 	index := start
-	for index < len(runes) && strings.ContainsRune(FLAG_CHARS, runes[index]) {
+	for index < len(format) && strings.ContainsRune(FLAG_CHARS, rune(format[index])) {
 		index++
 	}
-	if index >= len(runes) {
-		return 0, index
+	if index >= len(format) {
+		return NO_VERB, index
 	}
-	return runes[index], index
+	return rune(format[index]), index
 }

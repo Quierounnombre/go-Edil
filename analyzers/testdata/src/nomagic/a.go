@@ -1,6 +1,9 @@
 package nomagic
 
-import "strings"
+import (
+	"os"
+	"strings"
+)
 
 const LIMIT = 5
 
@@ -22,4 +25,22 @@ func repeated() string {
 
 func fine(s string) string {
 	return strings.TrimSpace(s) + ""
+}
+
+func zeroOne(n int, items []int) bool {
+	os.Exit(1) // want `magic number 1`
+	_ = make([]int, 0)
+	total := 0
+	total++
+	_ = len(items) == 0
+	_ = n%LIMIT == 0
+	_ = total
+	return n == 0 // want `magic number 0`
+}
+
+func switched(n int) {
+	switch n {
+	case 1: // want `magic number 1`
+	case LIMIT:
+	}
 }

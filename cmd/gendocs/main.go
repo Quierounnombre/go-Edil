@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	_ "embed"
+	"embed"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,45 +13,74 @@ import (
 	"edil/analyzers"
 )
 
-//go:embed readme.template.md
-var TEMPLATE string
+//go:embed readme.template.md conventions.template.md examples
+var FILES embed.FS
 
-func buildPage() Page {
+func buildPage() (Page, error) {
 	rules := make([]Rule, 0, len(analyzers.ANALYZERS))
 	for _, analyzer := range analyzers.ANALYZERS {
 		summary, _, _ := strings.Cut(analyzer.Doc, NEWLINE)
 		doc := strings.ReplaceAll(summary, PIPE, PIPE_ESCAPED)
-		rules = append(rules, Rule{Name: analyzer.Name, Doc: doc})
+		example, err := FILES.ReadFile(EXAMPLES_DIR + analyzer.Name + EXAMPLE_EXT)
+		if err != nil {
+			return Page{}, fmt.Errorf("rule %s has no example: %w", analyzer.Name, err)
+		}
+		rules = append(rules, Rule{Name: analyzer.Name, Doc: doc, Example: strings.TrimSpace(string(example))})
 	}
-	return Page{Repo: REPO, Rules: rules}
+	return Page{Repo: REPO, Rules: rules}, nil
 }
 
-func render() (string, error) {
-	tmpl, err := template.New(TEMPLATE_NAME).Parse(TEMPLATE)
+func render(page Page, source string) (string, error) {
+	text, err := FILES.ReadFile(source)
+	if err != nil {
+		return "", err
+	}
+	tmpl, err := template.New(source).Parse(string(text))
 	if err != nil {
 		return "", err
 	}
 	var out bytes.Buffer
-	err = tmpl.Execute(&out, buildPage())
+	err = tmpl.Execute(&out, page)
 	return out.String(), err
 }
 
-func run() error {
-	check := flag.Bool("check", false, "fail if README.md is out of date")
-	flag.Parse()
-	updated, err := render()
+func outputs() []output {
+	return []output{
+		{path: README_PATH, template: README_TEMPLATE},
+		{path: CONVENTIONS_PATH, template: CONVENTIONS_TMPL},
+	}
+}
+
+func apply(page Page, target output, check bool) error {
+	updated, err := render(page, target.template)
 	if err != nil {
 		return err
 	}
-	if !*check {
-		return os.WriteFile(README_PATH, []byte(updated), FILE_MODE)
+	if !check {
+		return os.WriteFile(target.path, []byte(updated), FILE_MODE)
 	}
-	current, err := os.ReadFile(README_PATH)
+	current, err := os.ReadFile(target.path)
 	if err != nil {
 		return err
 	}
 	if string(current) != updated {
-		return errors.New(README_PATH + " is out of date, run: go run ./cmd/gendocs")
+		return errors.New(target.path + " is out of date, run: go run ./cmd/gendocs")
+	}
+	return nil
+}
+
+func run() error {
+	check := flag.Bool("check", false, "fail if generated docs are out of date")
+	flag.Parse()
+	page, err := buildPage()
+	if err != nil {
+		return err
+	}
+	for _, target := range outputs() {
+		err = apply(page, target, *check)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -60,6 +89,6 @@ func main() {
 	err := run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		os.Exit(EXIT_FAILURE)
 	}
 }

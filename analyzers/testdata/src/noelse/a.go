@@ -1,10 +1,30 @@
 package noelse
 
 func bad(n int) int {
-	if n > 0 {
+	if n > 0 { // want `else after a block that exits`
 		return 1
-	} else { // want `else after a block that exits`
+	} else {
 		return 2
+	}
+}
+
+func chain(n int) int {
+	if n > 0 { // want `else after a block that exits`
+		return 1
+	} else if n < 0 { // want `else after a block that exits`
+		return 2
+	} else {
+		n++
+	}
+	return n
+}
+
+func scoped(n int) int {
+	if n > 0 { // want `else after a block that exits`
+		return 1
+	} else {
+		doubled := n * 2
+		return doubled
 	}
 }
 

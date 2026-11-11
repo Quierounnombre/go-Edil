@@ -1,0 +1,15 @@
+package errwrap
+
+import "fmt"
+
+func bad(err error) error {
+	_ = fmt.Errorf("a: %w", err)    // want `use %w`
+	_ = fmt.Errorf("b: %w", err)    // want `use %w`
+	return fmt.Errorf("c: %w", err) // want `use %w`
+}
+
+func good(err error) error {
+	_ = fmt.Errorf("a: %w", err)
+	_ = fmt.Errorf("n: %d %s", 3, "x")
+	return fmt.Errorf("100%% %w", err)
+}
