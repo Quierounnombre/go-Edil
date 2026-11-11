@@ -11,7 +11,7 @@
 			version = "0.3.0";
 			src = ./.;
 			subPackages = [ "cmd/edil" "cmd/gendocs" ];
-			vendorHash = "sha256-hid0eSPm/yfUFBnPnQn2VpHGt/vIEB+zFZEaHuCBJZU=";
+			vendorHash = pkgs.lib.fakeHash;
 		};
 
 		devShells.${system}.default = pkgs.mkShell {
