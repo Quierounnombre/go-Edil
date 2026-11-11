@@ -10,25 +10,31 @@ Generated from the analyzers in code, so this table cannot go stale.
 
 | Analyzer | Enforces |
 |----------|----------|
-| `constcase` | constants must be SCREAMING_SNAKE_CASE |
-| `nopanic` | forbid panic, log.Fatal*, log.Panic* and os.Exit outside main; return errors instead |
-| `layout` | types must live in type.go, constants in defines.go |
-| `errreturn` | errors must be returned, not assigned to _ or checked and swallowed |
-| `tabindent` | indentation must use tabs, not spaces |
-| `maxdepth` | control flow must not nest deeper than MAX_DEPTH (3) levels |
-| `nakedreturn` | functions with named results must not use a bare return |
-| `noelse` | no else after a block that returns, breaks or continues |
-| `noifinit` | if and switch must not have an init statement; declare it on its own line |
-| `pkgsize` | a package must stay under MAX_TYPES (10) types and MAX_LINES (1500) lines; split it |
 | `boolreturn` | flags are bool: no 0/1 returns, no comparing against true or false |
 | `complexity` | cognitive complexity per function must stay at or below MAX_COMPLEXITY (15) |
+| `constcase` | constants must be SCREAMING_SNAKE_CASE |
+| `deferinloop` | no defer inside a loop; it runs when the function returns, not per iteration |
+| `errreturn` | errors must be returned, not assigned to _ or checked and swallowed |
+| `errstring` | error strings are lowercase and do not end with punctuation or a newline |
+| `errwrap` | fmt.Errorf must wrap errors with %w, not format them with %v or %s |
+| `execvar` | exec.Command runs a constant binary; a shell must never get a non-constant script |
 | `funclen` | functions must not exceed MAX_FUNC_LINES (120) lines |
+| `hardcodedsecret` | no secret-looking string literals assigned to password, token, secret or key names; load them from the environment |
 | `httpdefault` | no http.Get/Post/Head/PostForm, http.DefaultClient or http.Client{} without Timeout; they never time out |
+| `layout` | types must live in type.go, constants in defines.go |
 | `mathrand` | math/rand is predictable; use crypto/rand, or //edil:ignore mathrand <reason> for non-security use |
+| `maxdepth` | control flow must not nest deeper than MAX_DEPTH (3) levels |
 | `maxparams` | functions take at most MAX_PARAMS (5) parameters, context.Context not counted; group the rest in a struct |
+| `nakedreturn` | functions with named results must not use a bare return |
 | `nobackgroundctx` | context.Background and context.TODO only in main; accept a ctx parameter everywhere else |
+| `noelse` | no else after a block that returns, breaks or continues |
 | `noglobals` | no package-level var, except //go:embed, _ assertions and analyzers; use const or pass values in |
+| `noifinit` | if and switch must not have an init statement; declare it on its own line |
 | `nomagic` | no magic numbers (except 0 and 1); no magic strings that are compared or repeated; use named constants |
+| `nopanic` | forbid panic, log.Fatal*, log.Panic* and os.Exit outside main; return errors instead |
+| `pkgsize` | a package must stay under MAX_TYPES (10) types and MAX_LINES (1500) lines; split it |
+| `sqlconcat` | database/sql queries must be constant strings; pass values as placeholder arguments |
+| `tabindent` | indentation must use tabs, not spaces |
 | `tlsinsecure` | tls.Config.InsecureSkipVerify must not be set to true |
 | `varinit` | inside functions use :=; var only for zero values that are not assigned right after |
 | `weakcrypto` | no md5, sha1, des or rc4; use sha256+, AES-GCM or ChaCha20 |
