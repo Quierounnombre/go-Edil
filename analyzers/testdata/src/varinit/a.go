@@ -1,0 +1,20 @@
+package varinit
+
+func bad() int {
+	var total int // want `"total" is assigned right after its declaration`
+	total = 3
+	var name = "x" // want `use := instead of var`
+	_ = name
+	return total
+}
+
+func good() []int {
+	var items []int
+	items = append(items, 1)
+	var zero int
+	if len(items) > 0 {
+		zero = 2
+	}
+	_ = zero
+	return items
+}
