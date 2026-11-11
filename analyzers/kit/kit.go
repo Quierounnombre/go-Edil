@@ -2,6 +2,7 @@ package kit
 
 import (
 	"go/ast"
+	"go/constant"
 	"go/token"
 	"go/types"
 	"strings"
@@ -46,6 +47,15 @@ func Qualified(obj types.Object) string {
 		return ""
 	}
 	return obj.Pkg().Path() + QUALIFY_SEP + obj.Name()
+}
+
+// ConstString returns the value of a constant string expression.
+func ConstString(pass *analysis.Pass, expr ast.Expr) (string, bool) {
+	value := pass.TypesInfo.Types[expr].Value
+	if value == nil || value.Kind() != constant.String {
+		return "", false
+	}
+	return constant.StringVal(value), true
 }
 
 func ignored(pass *analysis.Pass, pos token.Pos) bool {
