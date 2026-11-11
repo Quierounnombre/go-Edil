@@ -22,7 +22,7 @@ func run(pass *analysis.Pass) (any, error) {
 		for _, decl := range file.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
 			if ok && fn.Body != nil {
-				walk(pass, fn.Body, 0, map[ast.Node]bool{})
+				walk(pass, fn.Body, START_DEPTH, map[ast.Node]bool{})
 			}
 		}
 	}
@@ -42,7 +42,7 @@ func walk(pass *analysis.Pass, root ast.Node, depth int, chained map[ast.Node]bo
 func visit(pass *analysis.Pass, child ast.Node, depth int, chained map[ast.Node]bool) bool {
 	lit, isLit := child.(*ast.FuncLit)
 	if isLit {
-		walk(pass, lit.Body, 0, chained)
+		walk(pass, lit.Body, START_DEPTH, chained)
 		return false
 	}
 	if !isNesting(child) {

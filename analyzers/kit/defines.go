@@ -1,8 +1,25 @@
 package kit
 
 const (
-	IGNORE_PREFIX    = "//edil:ignore"
-	IGNORE_MIN_PARTS = 2
-	TEST_SUFFIX      = "_test.go"
-	QUALIFY_SEP      = "."
+	TEST_SUFFIX   = "_test.go"
+	QUALIFY_SEP   = "."
+	MAIN_NAME     = "main"
+	WORD_PASSWORD = "password"
+	WORD_PASSWD   = "passwd"
+	WORD_SECRET   = "secret"
+	WORD_TOKEN    = "token"
+	WORD_APIKEY   = "apikey"
+	WORD_API_KEY  = "api_key"
+	WORD_PRIVKEY  = "privatekey"
+	WORD_PRIV_KEY = "private_key"
+	WORD_CRED     = "credential"
+	SAFE_HEADER   = "header"
+	SAFE_NAME     = "name"
+	SAFE_ENV      = "env"
+	SAFE_FIELD    = "field"
+	SAFE_TYPE     = "type"
+	SAFE_PATH     = "path"
+	SAFE_URL      = "url"
+	SAFE_CLAIM    = "claim"
+	SAFE_PREFIX   = "prefix"
 )

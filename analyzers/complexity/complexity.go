@@ -25,7 +25,7 @@ func run(pass *analysis.Pass) (any, error) {
 			if !ok || fn.Body == nil {
 				continue
 			}
-			total := scoreChildren(fn.Body, 0)
+			total := scoreChildren(fn.Body, START_NESTING)
 			if total > MAX_COMPLEXITY {
 				kit.Reportf(pass, fn.Name.Pos(), "function %q has cognitive complexity %d (max %d)", fn.Name.Name, total, MAX_COMPLEXITY)
 			}

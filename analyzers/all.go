@@ -10,19 +10,23 @@ import (
 	"edil/analyzers/errwrap"
 	"edil/analyzers/execvar"
 	"edil/analyzers/funclen"
+	"edil/analyzers/gostmt"
 	"edil/analyzers/hardcodedsecret"
 	"edil/analyzers/httpdefault"
 	"edil/analyzers/layout"
+	"edil/analyzers/logsecret"
 	"edil/analyzers/mathrand"
 	"edil/analyzers/maxdepth"
 	"edil/analyzers/maxparams"
 	"edil/analyzers/nakereturn"
 	"edil/analyzers/nobackgroundctx"
+	"edil/analyzers/nobuildtag"
 	"edil/analyzers/noelse"
 	"edil/analyzers/noglobals"
 	"edil/analyzers/noifinit"
 	"edil/analyzers/nomagic"
 	"edil/analyzers/nopanic"
+	"edil/analyzers/nosuppress"
 	"edil/analyzers/pkgsize"
 	"edil/analyzers/sqlconcat"
 	"edil/analyzers/tabindent"
@@ -42,7 +46,7 @@ var ANALYZERS = []*analysis.Analyzer{
 	errstring.Analyzer,
 	errwrap.Analyzer,
 	execvar.Analyzer,
-	funclen.Analyzer,
+	funclen.Analyzer, gostmt.Analyzer, logsecret.Analyzer,
 	hardcodedsecret.Analyzer,
 	httpdefault.Analyzer,
 	layout.Analyzer,
@@ -50,12 +54,12 @@ var ANALYZERS = []*analysis.Analyzer{
 	maxdepth.Analyzer,
 	maxparams.Analyzer,
 	nakedreturn.Analyzer,
-	nobackgroundctx.Analyzer,
+	nobackgroundctx.Analyzer, nobuildtag.Analyzer,
 	noelse.Analyzer,
 	noglobals.Analyzer,
 	noifinit.Analyzer,
 	nomagic.Analyzer,
-	nopanic.Analyzer,
+	nopanic.Analyzer, nosuppress.Analyzer,
 	pkgsize.Analyzer,
 	sqlconcat.Analyzer,
 	tabindent.Analyzer,

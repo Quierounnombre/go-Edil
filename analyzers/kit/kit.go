@@ -10,19 +10,43 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-// Reportf reports a diagnostic unless an //edil:ignore <rule> <reason>
-// comment sits on the same line or the line above.
+// Reportf reports a diagnostic. There is deliberately no way to suppress one:
+// a wrong rule gets fixed in Edil, never bypassed in the code under check.
 func Reportf(pass *analysis.Pass, pos token.Pos, format string, args ...any) {
-	if ignored(pass, pos) {
-		return
-	}
 	pass.Reportf(pos, format, args...)
 }
 
-// Skip reports whether a file is generated or a test file.
+// Report reports an already formatted message.
+func Report(pass *analysis.Pass, pos token.Pos, message string) {
+	pass.Report(analysis.Diagnostic{Pos: pos, Message: message})
+}
+
+// ReportFix reports a diagnostic with one suggested fix. A fix is only offered
+// when it is mechanical and cannot change behavior.
+func ReportFix(pass *analysis.Pass, pos token.Pos, message string, fixMessage string, edits []analysis.TextEdit) {
+	pass.Report(analysis.Diagnostic{
+		Pos:     pos,
+		Message: message,
+		SuggestedFixes: []analysis.SuggestedFix{{
+			Message:   fixMessage,
+			TextEdits: edits,
+		}},
+	})
+}
+
+// Edit builds a text edit replacing [start, end) with text.
+func Edit(start token.Pos, end token.Pos, text string) analysis.TextEdit {
+	return analysis.TextEdit{Pos: start, End: end, NewText: []byte(text)}
+}
+
+// Skip reports whether a file is a test file. It is the only exemption.
 func Skip(pass *analysis.Pass, file *ast.File) bool {
-	name := pass.Fset.File(file.Pos()).Name()
-	return ast.IsGenerated(file) || strings.HasSuffix(name, TEST_SUFFIX)
+	return strings.HasSuffix(pass.Fset.File(file.Pos()).Name(), TEST_SUFFIX)
+}
+
+// IsMain reports whether fn is func main in package main.
+func IsMain(pass *analysis.Pass, fn *ast.FuncDecl) bool {
+	return pass.Pkg.Name() == MAIN_NAME && fn.Recv == nil && fn.Name.Name == MAIN_NAME
 }
 
 // Callee returns the object a call expression invokes, or nil.
@@ -56,36 +80,4 @@ func ConstString(pass *analysis.Pass, expr ast.Expr) (string, bool) {
 		return "", false
 	}
 	return constant.StringVal(value), true
-}
-
-func ignored(pass *analysis.Pass, pos token.Pos) bool {
-	file := fileOf(pass, pos)
-	if file == nil {
-		return false
-	}
-	line := pass.Fset.Position(pos).Line
-	for _, group := range file.Comments {
-		for _, comment := range group.List {
-			commentLine := pass.Fset.Position(comment.Pos()).Line
-			near := commentLine == line || commentLine == line-1
-			if near && matches(pass.Analyzer.Name, comment.Text) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func matches(rule string, text string) bool {
-	parts := strings.Fields(text)
-	return len(parts) > IGNORE_MIN_PARTS && parts[0] == IGNORE_PREFIX && parts[1] == rule
-}
-
-func fileOf(pass *analysis.Pass, pos token.Pos) *ast.File {
-	for _, file := range pass.Files {
-		if file.FileStart <= pos && pos <= file.FileEnd {
-			return file
-		}
-	}
-	return nil
 }

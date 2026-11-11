@@ -53,7 +53,7 @@ func checkPairs(pass *analysis.Pass, targets []ast.Expr, values []ast.Expr) {
 func checkPair(pass *analysis.Pass, target ast.Expr, value ast.Expr) {
 	name := nameOf(target)
 	secret, isConst := kit.ConstString(pass, value)
-	if name == "" || !isConst || !isSecretName(name) || !looksLikeSecret(secret) {
+	if name == "" || !isConst || !kit.IsSecretName(name) || !looksLikeSecret(secret) {
 		return
 	}
 	kit.Reportf(pass, target.Pos(), "hardcoded secret in %q; load it from the environment or a secret store", name)
@@ -73,29 +73,6 @@ func nameOf(expr ast.Expr) string {
 		return unquoted
 	}
 	return ""
-}
-
-func secretWords() []string {
-	return []string{WORD_PASSWORD, WORD_PASSWD, WORD_SECRET, WORD_TOKEN, WORD_APIKEY, WORD_API_KEY, WORD_PRIVKEY, WORD_PRIV_KEY, WORD_CRED}
-}
-
-func safeSuffixes() []string {
-	return []string{SAFE_HEADER, SAFE_NAME, SAFE_ENV, SAFE_FIELD, SAFE_TYPE, SAFE_PATH, SAFE_URL, SAFE_CLAIM, SAFE_PREFIX}
-}
-
-func isSecretName(name string) bool {
-	lower := strings.ToLower(name)
-	for _, suffix := range safeSuffixes() {
-		if strings.HasSuffix(lower, suffix) {
-			return false
-		}
-	}
-	for _, word := range secretWords() {
-		if strings.Contains(lower, word) {
-			return true
-		}
-	}
-	return false
 }
 
 func looksLikeSecret(value string) bool {

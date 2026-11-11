@@ -1,6 +1,7 @@
 package tabindent
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"strings"
@@ -18,9 +19,6 @@ var Analyzer = &analysis.Analyzer{
 
 func run(pass *analysis.Pass) (any, error) {
 	for _, file := range pass.Files {
-		if ast.IsGenerated(file) {
-			continue
-		}
 		err := checkFile(pass, file)
 		if err != nil {
 			return nil, err
@@ -37,19 +35,31 @@ func checkFile(pass *analysis.Pass, file *ast.File) error {
 	}
 	skip := verbatimLines(pass, file)
 	count, first := 0, 0
+	var edits []analysis.TextEdit
 	for index, line := range strings.Split(string(src), NEWLINE) {
 		if skip[index+1] || !hasSpaceIndent(line) {
 			continue
 		}
-		if count == 0 {
+		if count == NO_SPACES {
 			first = index + 1
 		}
 		count++
+		start := tokFile.LineStart(index + 1)
+		indent := len(line) - len(strings.TrimLeft(line, INDENT_CHARS))
+		edits = append(edits, kit.Edit(start, start+token.Pos(indent), tabs(line[:indent])))
 	}
 	if count > 0 {
-		kit.Reportf(pass, tokFile.LineStart(first), "indent with tabs, not spaces (%d lines, first here)", count)
+		message := fmt.Sprintf("indent with tabs, not spaces (%d lines, first here)", count)
+		kit.ReportFix(pass, tokFile.LineStart(first), message, "indent with tabs", edits)
 	}
 	return nil
+}
+
+// tabs converts an indent to tabs: a tab stays one, every SPACES_PER_TAB
+// spaces become one.
+func tabs(indent string) string {
+	width := strings.Count(indent, TAB) + strings.Count(indent, SPACE)/SPACES_PER_TAB
+	return strings.Repeat(TAB, width)
 }
 
 func hasSpaceIndent(line string) bool {

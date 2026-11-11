@@ -3,6 +3,7 @@ package nomagic
 import (
 	"go/ast"
 	"go/token"
+	"go/types"
 
 	"edil/analyzers/kit"
 
@@ -11,7 +12,7 @@ import (
 
 var Analyzer = &analysis.Analyzer{
 	Name: "nomagic",
-	Doc:  "no magic numbers (except 0 and 1); no magic strings that are compared or repeated; use named constants",
+	Doc:  "no magic numbers (0 and 1 are fine, except as call arguments or in ==/!=); no magic strings that are compared or repeated; use named constants",
 	Run:  run,
 }
 
@@ -24,10 +25,11 @@ func run(pass *analysis.Pass) (any, error) {
 			continue
 		}
 		exempt := exemptLiterals(file)
+		zeroOne := zeroOneLiterals(pass, file)
 		markCompared(file, compared)
 		ast.Inspect(file, func(node ast.Node) bool {
 			lit, ok := node.(*ast.BasicLit)
-			if ok && !exempt[lit] && isInteresting(lit) {
+			if ok && !exempt[lit] && (isInteresting(lit) || zeroOne[lit]) {
 				literals = append(literals, lit)
 				counts[lit.Value]++
 			}
@@ -115,5 +117,64 @@ func markLiteral(expr ast.Expr, set map[*ast.BasicLit]bool) {
 	lit, ok := expr.(*ast.BasicLit)
 	if ok {
 		set[lit] = true
+	}
+}
+
+// zeroOneLiterals finds 0 and 1 used as call arguments, in == / != comparisons
+// and in case clauses. len/cap comparisons and modulo checks are idiomatic.
+func zeroOneLiterals(pass *analysis.Pass, file *ast.File) map[*ast.BasicLit]bool {
+	flagged := map[*ast.BasicLit]bool{}
+	ast.Inspect(file, func(node ast.Node) bool {
+		switch typed := node.(type) {
+		case *ast.CallExpr:
+			markArgs(pass, typed, flagged)
+		case *ast.BinaryExpr:
+			markComparison(pass, typed, flagged)
+		case *ast.CaseClause:
+			for _, expr := range typed.List {
+				markZeroOne(expr, flagged)
+			}
+		}
+		return true
+	})
+	return flagged
+}
+
+func markArgs(pass *analysis.Pass, call *ast.CallExpr, flagged map[*ast.BasicLit]bool) {
+	_, isFunc := kit.Callee(pass, call).(*types.Func)
+	if !isFunc {
+		return
+	}
+	for _, arg := range call.Args {
+		markZeroOne(arg, flagged)
+	}
+}
+
+func markComparison(pass *analysis.Pass, bin *ast.BinaryExpr, flagged map[*ast.BasicLit]bool) {
+	if bin.Op != token.EQL && bin.Op != token.NEQ {
+		return
+	}
+	if isSizeOrModulo(pass, bin.X) || isSizeOrModulo(pass, bin.Y) {
+		return
+	}
+	markZeroOne(bin.X, flagged)
+	markZeroOne(bin.Y, flagged)
+}
+
+func isSizeOrModulo(pass *analysis.Pass, expr ast.Expr) bool {
+	switch typed := expr.(type) {
+	case *ast.BinaryExpr:
+		return typed.Op == token.REM || typed.Op == token.AND
+	case *ast.CallExpr:
+		builtin, ok := kit.Callee(pass, typed).(*types.Builtin)
+		return ok && (builtin.Name() == LEN_NAME || builtin.Name() == CAP_NAME)
+	}
+	return false
+}
+
+func markZeroOne(expr ast.Expr, flagged map[*ast.BasicLit]bool) {
+	lit, ok := expr.(*ast.BasicLit)
+	if ok && lit.Kind == token.INT && (lit.Value == ZERO_LITERAL || lit.Value == ONE_LITERAL) {
+		flagged[lit] = true
 	}
 }
