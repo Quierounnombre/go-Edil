@@ -45,6 +45,9 @@ Generated from the analyzers in code, so this table cannot go stale.
 
 Limits (function length, parameters, complexity, nesting) live in each analyzer's `defines.go`.
 
+> [!WARNING]
+> Edil is all or nothing. It is not compatible with other linters' conventions or with code generators (sqlc, protoc, mockgen, stringer...): generated code is checked like any other file and will fail. Either a project uses Edil for syntax and good practices, or it does not; there is no in between.
+
 * * *
 
 ## Tutorial
@@ -117,7 +120,7 @@ go run ./cmd/gendocs
 > [!NOTE]
 > If you skip the refresh, `nix flake check` fails and tells you the command to run.
 
-Edil must pass its own rules. Run it on this repo before committing:
+Edil must pass its own rules. `nix flake check` runs the tests, Edil on this repo and the docs check. To lint by hand before committing:
 
 ```
 go vet -vettool=$(readlink -f result/bin/edil) ./...

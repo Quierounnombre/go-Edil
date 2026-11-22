@@ -18,7 +18,7 @@ import (
 	"edil/analyzers/mathrand"
 	"edil/analyzers/maxdepth"
 	"edil/analyzers/maxparams"
-	"edil/analyzers/nakereturn"
+	"edil/analyzers/nakedreturn"
 	"edil/analyzers/nobackgroundctx"
 	"edil/analyzers/nobuildtag"
 	"edil/analyzers/noelse"
@@ -46,20 +46,24 @@ var ANALYZERS = []*analysis.Analyzer{
 	errstring.Analyzer,
 	errwrap.Analyzer,
 	execvar.Analyzer,
-	funclen.Analyzer, gostmt.Analyzer, logsecret.Analyzer,
+	funclen.Analyzer,
+	gostmt.Analyzer,
 	hardcodedsecret.Analyzer,
 	httpdefault.Analyzer,
 	layout.Analyzer,
+	logsecret.Analyzer,
 	mathrand.Analyzer,
 	maxdepth.Analyzer,
 	maxparams.Analyzer,
 	nakedreturn.Analyzer,
-	nobackgroundctx.Analyzer, nobuildtag.Analyzer,
+	nobackgroundctx.Analyzer,
+	nobuildtag.Analyzer,
 	noelse.Analyzer,
 	noglobals.Analyzer,
 	noifinit.Analyzer,
 	nomagic.Analyzer,
-	nopanic.Analyzer, nosuppress.Analyzer,
+	nopanic.Analyzer,
+	nosuppress.Analyzer,
 	pkgsize.Analyzer,
 	sqlconcat.Analyzer,
 	tabindent.Analyzer,
