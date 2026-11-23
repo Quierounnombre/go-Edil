@@ -22,7 +22,7 @@
 			version = "0.4.0";
 			src = ./.;
 			subPackages = [ "cmd/edil" "cmd/gendocs" ];
-			vendorHash = "sha256-nFI8aITdM5ojcLiFXuB8/aQ8M9NgxsYa4UiSHEUcpu8=";
+			vendorHash = "sha256-NZ2zdg/Qb06UXo8K5MBhIUgq/Ds+MzfeWAEs/PxQd/c=";
 		};
 
 		devShells.${system}.default = pkgs.mkShell {
