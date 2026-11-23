@@ -4,28 +4,40 @@
 #   AGENT='claude -p' EDIL=/path/to/edil cmd/fix/fixloop.sh [max_rounds]
 #
 # AGENT is a shell command that reads the prompt on stdin and edits files in
-# the current directory. Each round may only touch files that have findings,
+# the current directory. ROUND_TIMEOUT caps each agent call (default 15m, any
+# value timeout(1) accepts). An agent that fails or times out stops the loop. Each round may only touch files that have findings,
 # plus defines.go and type.go next to them; anything else is rolled back.
 set -euo pipefail
 
 EDIL=${EDIL:?set EDIL to the edil binary}
 AGENT=${AGENT:?set AGENT to a command that reads the prompt on stdin}
 MAX_ROUNDS=${1:-5}
+ROUND_TIMEOUT=${ROUND_TIMEOUT:-15m}
 FAILURE=1
+TIMED_OUT=124
+KILL_GRACE=10s
 # One line per rule per round: time, repo, round, rule, findings, outcome.
 # Lives outside the repo so it never dirties the working tree.
 METRICS=${METRICS:-${XDG_STATE_HOME:-$HOME/.local/state}/edil/metrics.tsv}
 mkdir -p "$(dirname "$METRICS")"
 
-command -v jq >/dev/null || { echo "jq is required" >&2; exit "$FAILURE"; }
+for tool in jq timeout; do
+	command -v "$tool" >/dev/null || { echo "$tool is required" >&2; exit "$FAILURE"; }
+done
 if [ -n "$(git status --porcelain)" ]; then
 	echo "working tree must be clean" >&2
+	exit "$FAILURE"
+fi
+if ! build_log=$(go build -o /dev/null ./... 2>&1); then
+	echo "code must compile before the fix-loop runs:" >&2
+	echo "$build_log" >&2
 	exit "$FAILURE"
 fi
 
 findings() {
 	go vet -json -vettool="$EDIL" ./... 2>&1 | grep -v '^#' | jq -r --arg root "$PWD/" '
-		to_entries[] | .value | to_entries[] | .key as $rule | .value[]
+		to_entries[] | .value | to_entries[] | .key as $rule | .value
+		| if type == "array" then .[] else error("edil rule \($rule) failed: \(.error)") end
 		| "\(.posn | ltrimstr($root))\t\($rule)\t\(.message)"'
 }
 
@@ -64,6 +76,8 @@ $2
 PROMPT
 }
 
+prompt_file=$(mktemp)
+trap 'rm -f "$prompt_file"' EXIT
 feedback=""
 for round in $(seq 1 "$MAX_ROUNDS"); do
 	current=$(findings)
@@ -73,7 +87,19 @@ for round in $(seq 1 "$MAX_ROUNDS"); do
 	fi
 	echo "round $round: $(wc -l <<<"$current") findings"
 	allowed=$(allowed_files "$current")
-	prompt_for "$(tr '\t' ' ' <<<"$current")" "$feedback" | bash -c "$AGENT" >/dev/null || true
+	# The prompt goes through a file: piping it would turn an agent that stops
+	# reading early into a SIGPIPE failure.
+	prompt_for "$(tr '\t' ' ' <<<"$current")" "$feedback" >"$prompt_file"
+	status=0
+	timeout --kill-after="$KILL_GRACE" "$ROUND_TIMEOUT" bash -c "$AGENT" <"$prompt_file" >/dev/null || status=$?
+	if [ "$status" -ne 0 ]; then
+		outcome=agent_failed
+		[ "$status" -eq "$TIMED_OUT" ] && outcome=agent_timeout
+		echo "$outcome (exit $status), rolled back and stopped" >&2
+		rollback
+		record "$outcome"
+		exit "$FAILURE"
+	fi
 	feedback=""
 	if [ -z "$(changed_files)" ]; then
 		feedback="Your previous attempt changed nothing; the findings are still there."
@@ -89,7 +115,7 @@ for round in $(seq 1 "$MAX_ROUNDS"); do
 		record rolled_back_scope
 		continue
 	fi
-	if ! build_log=$(go build ./... 2>&1 && go test ./... 2>&1); then
+	if ! build_log=$(go build -o /dev/null ./... 2>&1 && go test ./... 2>&1); then
 		feedback="Your previous attempt was rolled back: build or tests failed:
 $build_log"
 		echo "build/test failed, rolled back"
