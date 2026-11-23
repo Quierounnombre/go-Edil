@@ -31,6 +31,7 @@ import (
 	"edil/analyzers/sqlconcat"
 	"edil/analyzers/tabindent"
 	"edil/analyzers/tlsinsecure"
+	"edil/analyzers/uniquename"
 	"edil/analyzers/varinit"
 	"edil/analyzers/weakcrypto"
 
@@ -68,6 +69,7 @@ var ANALYZERS = []*analysis.Analyzer{
 	sqlconcat.Analyzer,
 	tabindent.Analyzer,
 	tlsinsecure.Analyzer,
+	uniquename.Analyzer,
 	varinit.Analyzer,
 	weakcrypto.Analyzer,
 }

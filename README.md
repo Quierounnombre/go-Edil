@@ -20,10 +20,10 @@ Generated from the analyzers in code, so this table cannot go stale.
 | `execvar` | exec.Command runs a constant binary; a shell must never get a non-constant script |
 | `funclen` | functions must not exceed MAX_FUNC_LINES (120) lines |
 | `gostmt` | no go statements outside main; use errgroup.Group.Go or sync.WaitGroup.Go so goroutines are waited on and report errors |
-| `logsecret` | do not pass password, token or secret values to log, slog or fmt print calls |
 | `hardcodedsecret` | no secret-looking string literals assigned to password, token, secret or key names; load them from the environment |
 | `httpdefault` | no http.Get/Post/Head/PostForm, http.DefaultClient or http.Client{} without Timeout; they never time out |
 | `layout` | types must live in type.go, constants in defines.go |
+| `logsecret` | do not pass password, token or secret values to log, slog or fmt print calls |
 | `mathrand` | math/rand is predictable; use crypto/rand |
 | `maxdepth` | control flow must not nest deeper than MAX_DEPTH (3) levels |
 | `maxparams` | functions take at most MAX_PARAMS (5) parameters, context.Context not counted; group the rest in a struct |
@@ -40,6 +40,7 @@ Generated from the analyzers in code, so this table cannot go stale.
 | `sqlconcat` | database/sql queries must be constant strings; pass values as placeholder arguments |
 | `tabindent` | indentation must use tabs, not spaces |
 | `tlsinsecure` | tls.Config.InsecureSkipVerify must not be set to true |
+| `uniquename` | a name declared in a block cannot be declared again in any block inside it, closures included; it must not reuse a package, import or builtin name either |
 | `varinit` | inside functions use :=; var only for zero values that are not assigned right after |
 | `weakcrypto` | no md5, sha1, des or rc4; use sha256+, AES-GCM or ChaCha20 |
 

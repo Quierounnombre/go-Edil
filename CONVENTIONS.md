@@ -170,18 +170,6 @@ group.Go(worker)
 err := group.Wait()
 ```
 
-## logsecret
-
-do not pass password, token or secret values to log, slog or fmt print calls
-
-```go
-// bad
-log.Printf("login %s", password)
-
-// good
-log.Printf("login %s", userID)
-```
-
 ## hardcodedsecret
 
 no secret-looking string literals assigned to password, token, secret or key names; load them from the environment
@@ -219,6 +207,18 @@ const LIMIT = 10
 // good
 // type.go:    type Store struct{}
 // defines.go: const LIMIT = 10
+```
+
+## logsecret
+
+do not pass password, token or secret values to log, slog or fmt print calls
+
+```go
+// bad
+log.Printf("login %s", password)
+
+// good
+log.Printf("login %s", userID)
 ```
 
 ## mathrand
@@ -464,6 +464,32 @@ cfg := &tls.Config{InsecureSkipVerify: true}
 
 // good
 cfg := &tls.Config{MinVersion: tls.VersionTLS12}
+```
+
+## uniquename
+
+a name declared in a block cannot be declared again in any block inside it, closures included; it must not reuse a package, import or builtin name either
+
+```go
+// bad
+cfg := defaultConfig()
+for _, path := range paths {
+	cfg, err := merge(cfg, path) // a new cfg; the outer one never changes
+	if err != nil {
+		return err
+	}
+	log.Println(cfg.Name)
+}
+
+// good
+cfg := defaultConfig()
+for _, path := range paths {
+	merged, err := merge(cfg, path)
+	if err != nil {
+		return err
+	}
+	cfg = merged
+}
 ```
 
 ## varinit

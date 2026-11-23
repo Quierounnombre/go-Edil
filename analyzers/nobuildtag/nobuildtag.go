@@ -122,9 +122,9 @@ func isHidden(path string, name string) bool {
 // holdsGo is true when root has a Go file; an unreadable tree counts as true.
 func holdsGo(root string) bool {
 	found := false
-	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
 		}
 		found = !entry.IsDir() && strings.HasSuffix(path, GO_SUFFIX)
 		if found {

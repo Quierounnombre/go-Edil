@@ -16,7 +16,6 @@ import (
 	"golang.org/x/tools/go/analysis/passes/nilfunc"
 	"golang.org/x/tools/go/analysis/passes/nilness"
 	"golang.org/x/tools/go/analysis/passes/printf"
-	"golang.org/x/tools/go/analysis/passes/shadow"
 	"golang.org/x/tools/go/analysis/passes/shift"
 	"golang.org/x/tools/go/analysis/passes/sigchanyzer"
 	"golang.org/x/tools/go/analysis/passes/slog"
@@ -33,7 +32,7 @@ import (
 	"golang.org/x/tools/go/analysis/passes/waitgroup"
 )
 
-// UPSTREAM holds go vet's default checks plus a few extras. Edil runs as the
+// UPSTREAM holds go vet's default checks plus a few extras. shadow is left out: uniquename is stricter. Edil runs as the
 // vet tool, so go vet's own checks only run if they are listed here.
 var UPSTREAM = []*analysis.Analyzer{
 	assign.Analyzer,
@@ -50,7 +49,6 @@ var UPSTREAM = []*analysis.Analyzer{
 	nilfunc.Analyzer,
 	nilness.Analyzer,
 	printf.Analyzer,
-	shadow.Analyzer,
 	shift.Analyzer,
 	sigchanyzer.Analyzer,
 	slog.Analyzer,
